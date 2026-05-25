@@ -246,15 +246,19 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun loadResponseDirectly(record: AnalysisRecord) {
-        try {
-            val parsedResponse = RetrofitClient.resAdapter.fromJson(record.jsonResult)
-            if (parsedResponse != null) {
-                resumeInput.value = record.resumeText
-                jobDescInput.value = record.jobDescription
-                uiState.value = AnalysisUiState.Success(parsedResponse)
+        viewModelScope.launch {
+            try {
+                val parsedResponse = withContext(Dispatchers.Default) {
+                    RetrofitClient.resAdapter.fromJson(record.jsonResult)
+                }
+                if (parsedResponse != null) {
+                    resumeInput.value = record.resumeText
+                    jobDescInput.value = record.jobDescription
+                    uiState.value = AnalysisUiState.Success(parsedResponse)
+                }
+            } catch (e: Exception) {
+                Log.e("ResumeViewModel", "Failed to reload historical record", e)
             }
-        } catch (e: Exception) {
-            Log.e("ResumeViewModel", "Failed to reload historical record", e)
         }
     }
 

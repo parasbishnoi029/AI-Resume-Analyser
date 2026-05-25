@@ -42,6 +42,9 @@ import com.example.data.AnalysisRecord
 import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.AnalysisUiState
 import com.example.viewmodel.ResumeViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -403,6 +406,7 @@ fun InputForm(
     val scrollState = rememberScrollState()
     val context = LocalContext.current
     val contentResolver = context.contentResolver
+    val coroutineScope = rememberCoroutineScope()
     
     var selectedFileName by remember { mutableStateOf<String?>(null) }
     var isFileLoaded by remember { mutableStateOf(false) }
@@ -412,21 +416,27 @@ fun InputForm(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            val name = getFileName(context, it) ?: "resume.txt"
-            selectedFileName = name
-            try {
-                val content = contentResolver.openInputStream(it)?.bufferedReader()?.use { reader ->
-                    reader.readText()
+            coroutineScope.launch {
+                try {
+                    val name = withContext(Dispatchers.IO) {
+                        getFileName(context, it) ?: "resume.txt"
+                    }
+                    selectedFileName = name
+                    val content = withContext(Dispatchers.IO) {
+                        contentResolver.openInputStream(it)?.bufferedReader()?.use { reader ->
+                            reader.readText()
+                        }
+                    }
+                    if (!content.isNullOrBlank()) {
+                        onResumeChange(content)
+                        isFileLoaded = true
+                        Toast.makeText(context, "Loaded Profile: $name", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(context, "Loaded file has unreadable/empty text format.", Toast.LENGTH_LONG).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Error reading text contents: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                 }
-                if (!content.isNullOrBlank()) {
-                    onResumeChange(content)
-                    isFileLoaded = true
-                    Toast.makeText(context, "Loaded Profile: $name", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(context, "Loaded file has unreadable/empty text format.", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error reading text contents: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
             }
         }
     }
