@@ -1,3 +1,5 @@
+import java.io.File
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
@@ -24,9 +26,9 @@ android {
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
+      storePassword = System.getenv("STORE_PASSWORD") ?: "android"
       keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
@@ -119,3 +121,42 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
 }
+
+// Dynamically generate release keystore at task execution time if it doesn't exist
+tasks.register("generateReleaseKeystore") {
+    val kFile = File(project.rootDir, "my-upload-key.jks")
+    outputs.file(kFile)
+    doLast {
+        if (!kFile.exists()) {
+            println("--- Generating my-upload-key.jks for release signing ---")
+            val pb = ProcessBuilder(
+                "keytool", "-genkeypair", "-v",
+                "-keystore", kFile.absolutePath,
+                "-alias", "upload",
+                "-keyalg", "RSA",
+                "-keysize", "2048",
+                "-validity", "10000",
+                "-storepass", "android",
+                "-keypass", "android",
+                "-dname", "CN=MySelf, OU=MyOrg, O=MyCompany, L=MyCity, S=MyState, C=US"
+            )
+            pb.redirectErrorStream(true)
+            val process = pb.start()
+            val output = process.inputStream.bufferedReader().readText()
+            val exitCode = process.waitFor()
+            println("--- keytool exit code: $exitCode ---")
+            println(output)
+            if (exitCode != 0) {
+                throw GradleException("Failed to generate release keystore via keytool: $output")
+            }
+        }
+    }
+}
+
+// Make packaging and signing tasks depend on dynamic keystore generation
+tasks.configureEach {
+    if (name.contains("packageRelease", ignoreCase = true) || name.contains("signingConfig", ignoreCase = true)) {
+        dependsOn("generateReleaseKeystore")
+    }
+}
+
