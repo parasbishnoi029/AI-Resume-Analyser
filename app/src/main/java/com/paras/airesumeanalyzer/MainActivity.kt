@@ -629,13 +629,146 @@ fun InputForm(
                     val name = withContext(Dispatchers.IO) {
                         getFileName(context, it) ?: "resume.txt"
                     }
+                    val mimeType = contentResolver.getType(it) ?: ""
+                    val extension = name.substringAfterLast('.', "").lowercase()
+                    
+                    val isPdf = extension == "pdf" || mimeType == "application/pdf"
+                    val isDocx = extension == "docx" || mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    val isDoc = extension == "doc" || mimeType == "application/msword"
+
                     val content = withContext(Dispatchers.IO) {
-                        contentResolver.openInputStream(it)?.bufferedReader()?.use { reader ->
-                            reader.readText()
+                        when {
+                            isPdf -> {
+                                try {
+                                    com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(context)
+                                    contentResolver.openInputStream(it)?.use { inputStream ->
+                                        val document = com.tom_roush.pdfbox.pdmodel.PDDocument.load(inputStream)
+                                        val stripper = com.tom_roush.pdfbox.text.PDFTextStripper()
+                                        val text = stripper.getText(document)
+                                        document.close()
+                                        text ?: ""
+                                    } ?: ""
+                                } catch (e: Exception) {
+                                    android.util.Log.e("MainActivity", "PDF text extraction failed: ${e.localizedMessage}", e)
+                                    ""
+                                }
+                            }
+                            isDocx -> {
+                                try {
+                                    contentResolver.openInputStream(it)?.use { inputStream ->
+                                        java.util.zip.ZipInputStream(inputStream).use { zipInputStream ->
+                                            var textContent = ""
+                                            var entry = zipInputStream.nextEntry
+                                            while (entry != null) {
+                                                if (entry.name == "word/document.xml") {
+                                                    val contentBytes = zipInputStream.readBytes()
+                                                    val contentStr = String(contentBytes, Charsets.UTF_8)
+                                                    
+                                                    val textBuilder = java.lang.StringBuilder()
+                                                    val paragraphPattern = java.util.regex.Pattern.compile("<w:p[^>]*>(.*?)</w:p>", java.util.regex.Pattern.DOTALL)
+                                                    val textPattern = java.util.regex.Pattern.compile("<w:t[^>]*>(.*?)</w:t>", java.util.regex.Pattern.DOTALL)
+                                                    
+                                                    val pMatcher = paragraphPattern.matcher(contentStr)
+                                                    var foundAny = false
+                                                    while (pMatcher.find()) {
+                                                        foundAny = true
+                                                        val pContent = pMatcher.group(1) ?: ""
+                                                        val tMatcher = textPattern.matcher(pContent)
+                                                        val pBuilder = java.lang.StringBuilder()
+                                                        while (tMatcher.find()) {
+                                                            val txt = tMatcher.group(1) ?: ""
+                                                            pBuilder.append(txt.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'"))
+                                                        }
+                                                        if (pBuilder.isNotEmpty()) {
+                                                            textBuilder.append(pBuilder.toString()).append("\n")
+                                                        }
+                                                    }
+                                                    if (!foundAny) {
+                                                        val tMatcher = textPattern.matcher(contentStr)
+                                                        while (tMatcher.find()) {
+                                                            val txt = tMatcher.group(1) ?: ""
+                                                            textBuilder.append(txt.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'"))
+                                                        }
+                                                    }
+                                                    textContent = textBuilder.toString()
+                                                    break
+                                                }
+                                                zipInputStream.closeEntry()
+                                                entry = zipInputStream.nextEntry
+                                            }
+                                            textContent
+                                        }
+                                    } ?: ""
+                                } catch (e: Exception) {
+                                    android.util.Log.e("MainActivity", "DOCX text extraction failed: ${e.localizedMessage}", e)
+                                    ""
+                                }
+                            }
+                            isDoc -> {
+                                try {
+                                    contentResolver.openInputStream(it)?.use { inputStream ->
+                                        val bytes = inputStream.readBytes()
+                                        val result = java.lang.StringBuilder()
+                                        val minRunLength = 4
+                                        val run = java.lang.StringBuilder()
+                                        var j = 0
+                                        val size = bytes.size
+                                        while (j < size) {
+                                            val c = bytes[j].toInt() and 0xFF
+                                            if ((c in 32..126) || c == 9 || c == 10 || c == 13) {
+                                                run.append(c.toChar())
+                                            } else {
+                                                if (run.length >= minRunLength) {
+                                                    val s = run.toString().trim()
+                                                    if (s.isNotEmpty() && !s.startsWith("Normal") && !s.startsWith("Microsoft") && !s.contains("Content-") && !s.startsWith("Font")) {
+                                                        result.append(s).append(" ")
+                                                    }
+                                                }
+                                                run.setLength(0)
+                                            }
+                                            j++
+                                        }
+                                        if (run.length >= minRunLength) {
+                                            result.append(run.toString())
+                                        }
+                                        val runUtf16 = java.lang.StringBuilder()
+                                        j = 0
+                                        while (j < size - 1) {
+                                            val b1 = bytes[j].toInt() and 0xFF
+                                            val b2 = bytes[j + 1].toInt() and 0xFF
+                                            if (b2 == 0 && ((b1 in 32..126) || b1 == 9 || b1 == 10 || b1 == 13)) {
+                                                runUtf16.append(b1.toChar())
+                                                j += 2
+                                            } else {
+                                                if (runUtf16.length >= minRunLength) {
+                                                    val s = runUtf16.toString().trim()
+                                                    if (s.isNotEmpty() && !s.startsWith("Normal") && !s.startsWith("Microsoft") && !s.startsWith("Font")) {
+                                                        result.append(s).append(" ")
+                                                    }
+                                                }
+                                                runUtf16.setLength(0)
+                                                j++
+                                            }
+                                        }
+                                        if (runUtf16.length >= minRunLength) {
+                                            result.append(runUtf16.toString())
+                                        }
+                                        result.toString().replace(Regex("\\s+"), " ").trim()
+                                    } ?: ""
+                                } catch (e: Exception) {
+                                    android.util.Log.e("MainActivity", "DOC text extraction failed: ${e.localizedMessage}", e)
+                                    ""
+                                }
+                            }
+                            else -> {
+                                contentResolver.openInputStream(it)?.bufferedReader()?.use { reader ->
+                                    reader.readText()
+                                }
+                            }
                         }
                     }
                     if (!content.isNullOrBlank()) {
-                        if (isBinaryContent(content)) {
+                        if (!isPdf && !isDocx && !isDoc && isBinaryContent(content)) {
                             selectedFileName = null
                             isFileLoaded = false
                             Toast.makeText(
@@ -776,7 +909,7 @@ fun InputForm(
             modifier = Modifier.padding(bottom = 6.dp)
         )
         Text(
-            text = "Select any plain text resume document (.txt, .md, .docx structural exports) to automatically ingest information securely.",
+            text = "Select any resume document (PDF, Word .docx/.doc, or Plain Text .txt/.md) to automatically ingest and parse information securely.",
             style = MaterialTheme.typography.bodySmall,
             color = appColors.textMuted,
             modifier = Modifier.padding(bottom = 14.dp)
@@ -812,7 +945,7 @@ fun InputForm(
                 )
                 .clickable {
                     try {
-                        fileLauncher.launch("text/plain")
+                        fileLauncher.launch("*/*")
                     } catch (e: android.content.ActivityNotFoundException) {
                         Toast.makeText(context, "File selector app is not installed/enabled. Try pasting the resume content or loading a design preset config.", Toast.LENGTH_LONG).show()
                     } catch (e: Exception) {
