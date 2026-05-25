@@ -631,22 +631,8 @@ fun InputForm(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { fileUri ->
-            // Secure temporary file access permission by synchronously reading the bytes on the main thread immediately
-            val fileBytes: ByteArray? = try {
-                contentResolver.openInputStream(fileUri)?.use { inputStream ->
-                    inputStream.readBytes()
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "Failed to open and read input stream synchronously: ${e.localizedMessage}", e)
-                null
-            }
-
-            if (fileBytes == null || fileBytes.isEmpty()) {
-                Toast.makeText(context, "Failed to load selected file content or file is empty.", Toast.LENGTH_LONG).show()
-                return@rememberLauncherForActivityResult
-            }
-
             coroutineScope.launch {
+                isReadingFile = true
                 try {
                     val name = withContext(Dispatchers.IO) {
                         getFileName(context, fileUri) ?: "resume.txt"
@@ -654,6 +640,24 @@ fun InputForm(
                     val mimeType = contentResolver.getType(fileUri) ?: ""
                     val extension = name.substringAfterLast('.', "").lowercase()
                     
+                    // Safe background file input stream reading
+                    val fileBytes = withContext(Dispatchers.IO) {
+                        try {
+                            contentResolver.openInputStream(fileUri)?.use { inputStream ->
+                                inputStream.readBytes()
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainActivity", "Failed to open and read input stream in coroutine: ${e.localizedMessage}", e)
+                            null
+                        }
+                    }
+
+                    if (fileBytes == null || fileBytes.isEmpty()) {
+                        Toast.makeText(context, "Failed to load selected file content or file is empty.", Toast.LENGTH_LONG).show()
+                        isReadingFile = false
+                        return@launch
+                    }
+
                     val detectedType = withContext(Dispatchers.IO) {
                         detectFileTypeByMagicBytes(context, fileUri)
                     }
@@ -673,7 +677,7 @@ fun InputForm(
                                         document.close()
                                         text ?: ""
                                     }
-                                } catch (e: Exception) {
+                                } catch (e: Throwable) {
                                     android.util.Log.e("MainActivity", "PDF text extraction failed: ${e.localizedMessage}", e)
                                     ""
                                 }
@@ -724,7 +728,7 @@ fun InputForm(
                                             textContent
                                         }
                                     }
-                                } catch (e: Exception) {
+                                } catch (e: Throwable) {
                                     android.util.Log.e("MainActivity", "DOCX text extraction failed: ${e.localizedMessage}", e)
                                     ""
                                 }
@@ -778,7 +782,7 @@ fun InputForm(
                                         result.append(runUtf16.toString())
                                     }
                                     result.toString().replace(Regex("\\s+"), " ").trim()
-                                } catch (e: Exception) {
+                                } catch (e: Throwable) {
                                     android.util.Log.e("MainActivity", "DOC text extraction failed: ${e.localizedMessage}", e)
                                     ""
                                 }
@@ -805,13 +809,16 @@ fun InputForm(
                             selectedFileName = name
                             onResumeChange(content)
                             isFileLoaded = true
-                            Toast.makeText(context, "Loaded Profile: $name", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "Loaded Profile: $name. Ingesting & Analyzing...", Toast.LENGTH_LONG).show()
+                            onAnalyze()
                         }
                     } else {
                         Toast.makeText(context, "Loaded file has unreadable/empty text format.", Toast.LENGTH_LONG).show()
                     }
                 } catch (e: Exception) {
                     Toast.makeText(context, "Error reading text contents: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                } finally {
+                    isReadingFile = false
                 }
             }
         }
@@ -984,36 +991,59 @@ fun InputForm(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Vector drawn document status icon
-                Canvas(modifier = Modifier.size(50.dp)) {
-                    val w = size.width
-                    val h = size.height
-                    val docColor = if (isFileLoaded) appColors.darkGreenTxt else appColors.primaryBlue
-                    
-                    val pathDoc = Path().apply {
-                        moveTo(w * 0.25f, h * 0.15f)
-                        lineTo(w * 0.6f, h * 0.15f)
-                        lineTo(w * 0.75f, h * 0.3f)
-                        lineTo(w * 0.75f, h * 0.85f)
-                        lineTo(w * 0.25f, h * 0.85f)
-                        close()
+                // Conditional indicator depending on file active parsing status
+                if (isReadingFile) {
+                    CircularProgressIndicator(
+                        color = appColors.primaryBlue,
+                        modifier = Modifier
+                            .size(50.dp)
+                            .testTag("file_loading_spinner")
+                    )
+                } else {
+                    Canvas(modifier = Modifier.size(50.dp)) {
+                        val w = size.width
+                        val h = size.height
+                        val docColor = if (isFileLoaded) appColors.darkGreenTxt else appColors.primaryBlue
+                        
+                        val pathDoc = Path().apply {
+                            moveTo(w * 0.25f, h * 0.15f)
+                            lineTo(w * 0.6f, h * 0.15f)
+                            lineTo(w * 0.75f, h * 0.3f)
+                            lineTo(w * 0.75f, h * 0.85f)
+                            lineTo(w * 0.25f, h * 0.85f)
+                            close()
+                        }
+                        drawPath(path = pathDoc, color = docColor, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+                        
+                        // Folder corner fold
+                        drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.6f, h * 0.15f), end = androidx.compose.ui.geometry.Offset(w * 0.6f, h * 0.3f), strokeWidth = 2.dp.toPx())
+                        drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.6f, h * 0.3f), end = androidx.compose.ui.geometry.Offset(w * 0.75f, h * 0.3f), strokeWidth = 2.dp.toPx())
+                        
+                        // Up arrow design
+                        val arrowYOffset = h * 0.04f
+                        drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.5f, h * 0.75f - arrowYOffset), end = androidx.compose.ui.geometry.Offset(w * 0.5f, h * 0.45f - arrowYOffset), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                        drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.38f, h * 0.57f - arrowYOffset), end = androidx.compose.ui.geometry.Offset(w * 0.5f, h * 0.45f - arrowYOffset), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                        drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.62f, h * 0.57f - arrowYOffset), end = androidx.compose.ui.geometry.Offset(w * 0.5f, h * 0.45f - arrowYOffset), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
                     }
-                    drawPath(path = pathDoc, color = docColor, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
-                    
-                    // Folder corner fold
-                    drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.6f, h * 0.15f), end = androidx.compose.ui.geometry.Offset(w * 0.6f, h * 0.3f), strokeWidth = 2.dp.toPx())
-                    drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.6f, h * 0.3f), end = androidx.compose.ui.geometry.Offset(w * 0.75f, h * 0.3f), strokeWidth = 2.dp.toPx())
-                    
-                    // Up arrow design
-                    val arrowYOffset = h * 0.04f
-                    drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.5f, h * 0.75f - arrowYOffset), end = androidx.compose.ui.geometry.Offset(w * 0.5f, h * 0.45f - arrowYOffset), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
-                    drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.38f, h * 0.57f - arrowYOffset), end = androidx.compose.ui.geometry.Offset(w * 0.5f, h * 0.45f - arrowYOffset), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
-                    drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.62f, h * 0.57f - arrowYOffset), end = androidx.compose.ui.geometry.Offset(w * 0.5f, h * 0.45f - arrowYOffset), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                if (selectedFileName != null) {
+                if (isReadingFile) {
+                    Text(
+                        text = "Ingesting Document...",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = appColors.textDark,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Reading structures and preparing text for AI analysis...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = appColors.textMuted,
+                        textAlign = TextAlign.Center
+                    )
+                } else if (selectedFileName != null) {
                     Text(
                         text = selectedFileName!!,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
