@@ -86,10 +86,19 @@ class MainActivity : ComponentActivity() {
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            val sw = java.io.StringWriter()
-            throwable.printStackTrace(java.io.PrintWriter(sw))
-            prefs.edit().putString("last_crash_trace", sw.toString()).commit()
-            defaultHandler?.uncaughtException(thread, throwable)
+            try {
+                val sw = java.io.StringWriter()
+                throwable.printStackTrace(java.io.PrintWriter(sw))
+                prefs.edit().putString("last_crash_trace", sw.toString()).commit()
+            } catch (e: Exception) {
+                // Ignore failure to write trace to avoid circular crash
+            }
+            if (defaultHandler != null) {
+                defaultHandler.uncaughtException(thread, throwable)
+            } else {
+                android.os.Process.killProcess(android.os.Process.myPid())
+                java.lang.System.exit(10)
+            }
         }
 
         setContent {
