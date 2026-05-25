@@ -80,7 +80,27 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val prefs = getSharedPreferences("crash_debug", android.content.Context.MODE_PRIVATE)
+        val lastCrash = prefs.getString("last_crash_trace", null)
+
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            val sw = java.io.StringWriter()
+            throwable.printStackTrace(java.io.PrintWriter(sw))
+            prefs.edit().putString("last_crash_trace", sw.toString()).commit()
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
+
         setContent {
+            var crashToShow by remember { mutableStateOf<String?>(null) }
+            LaunchedEffect(Unit) {
+                if (lastCrash != null) {
+                    crashToShow = lastCrash
+                    prefs.edit().remove("last_crash_trace").apply()
+                }
+            }
+
             var isDarkTheme by rememberSaveable { mutableStateOf(false) }
 
             // Dynamic color declarations to fulfill both Beautiful Light & Dark premium Minimalist vibes
@@ -133,19 +153,67 @@ class MainActivity : ComponentActivity() {
             }
 
             MyApplicationTheme(darkTheme = isDarkTheme) {
-                Scaffold(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("main_scaffold"),
-                    containerColor = appColors.bg
-                ) { innerPadding ->
-                    MainScreen(
-                        viewModel = viewModel,
-                        isDarkTheme = isDarkTheme,
-                        onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        appColors = appColors,
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Scaffold(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("main_scaffold"),
+                        containerColor = appColors.bg
+                    ) { innerPadding ->
+                        MainScreen(
+                            viewModel = viewModel,
+                            isDarkTheme = isDarkTheme,
+                            onToggleTheme = { isDarkTheme = !isDarkTheme },
+                            appColors = appColors,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
+
+                    if (crashToShow != null) {
+                        AlertDialog(
+                            onDismissRequest = { crashToShow = null },
+                            title = {
+                                Text(
+                                    text = "App Crash Diagnostics",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = appColors.textDark
+                                )
+                            },
+                            text = {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .verticalScroll(rememberScrollState())
+                                ) {
+                                    Text(
+                                        text = "The application crashed during a previous session. Stack trace coordinates:",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = appColors.textMuted
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = crashToShow!!,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 11.sp
+                                        ),
+                                        color = appColors.roseAccent
+                                    )
+                                }
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = { crashToShow = null },
+                                    colors = ButtonDefaults.buttonColors(containerColor = appColors.primaryBlue)
+                                ) {
+                                    Text("Dismiss", color = Color.White)
+                                }
+                            },
+                            containerColor = appColors.cardBg,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                    }
                 }
             }
         }
