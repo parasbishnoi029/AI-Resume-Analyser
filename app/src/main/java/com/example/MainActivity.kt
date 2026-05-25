@@ -45,6 +45,8 @@ import com.example.viewmodel.ResumeViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -184,6 +186,18 @@ fun MainScreen(
 
     val resumeText by viewModel.resumeInput.collectAsState()
     val jobDescText by viewModel.jobDescInput.collectAsState()
+    val customApiKey by viewModel.customApiKey.collectAsState()
+
+    var showKeyDialog by remember { mutableStateOf(false) }
+
+    if (showKeyDialog) {
+        GeminiKeyDialog(
+            currentKey = customApiKey,
+            onSave = { viewModel.saveApiKey(it) },
+            onDismiss = { showKeyDialog = false },
+            appColors = appColors
+        )
+    }
 
     Column(
         modifier = modifier
@@ -198,6 +212,7 @@ fun MainScreen(
         HeaderSection(
             isDarkTheme = isDarkTheme,
             onToggleTheme = onToggleTheme,
+            onConfigKeyClick = { showKeyDialog = true },
             appColors = appColors
         )
 
@@ -330,9 +345,105 @@ fun SunMoonIcon(isDark: Boolean, modifier: Modifier = Modifier, color: Color) {
 }
 
 @Composable
+fun GeminiKeyDialog(
+    currentKey: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+    appColors: AppThemeColors
+) {
+    var keyText by remember { mutableStateOf(currentKey) }
+    var showPassword by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = appColors.primaryBlue
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Configure Gemini API Key",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = appColors.textDark
+                )
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Enter your custom Gemini API Key below. If left blank, the app will fall back to the built-in AI Studio developer key.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = appColors.textMuted,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                OutlinedTextField(
+                    value = keyText,
+                    onValueChange = { keyText = it },
+                    label = { Text("Gemini API Key") },
+                    placeholder = { Text("AIzaSy...") },
+                    singleLine = true,
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        TextButton(onClick = { showPassword = !showPassword }) {
+                            Text(
+                                text = if (showPassword) "Hide" else "Show",
+                                color = appColors.primaryBlue,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = appColors.primaryBlue,
+                        unfocusedBorderColor = appColors.border,
+                        focusedLabelColor = appColors.primaryBlue,
+                        unfocusedLabelColor = appColors.textMuted,
+                        focusedTextColor = appColors.textDark,
+                        unfocusedTextColor = appColors.textDark
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "Your API Key is stored safely on this device via native SharedPreferences. It is only sent directly to Google's official Gemini API servers.",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    color = appColors.textMuted
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSave(keyText.trim())
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = appColors.primaryBlue),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Save Key", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = appColors.textMuted)
+            }
+        },
+        containerColor = appColors.cardBg,
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@Composable
 fun HeaderSection(
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
+    onConfigKeyClick: () -> Unit,
     appColors: AppThemeColors
 ) {
     Row(
@@ -375,15 +486,35 @@ fun HeaderSection(
             }
         }
 
-        // Beautiful Theme Switch Button
-        IconButton(
-            onClick = onToggleTheme,
-            modifier = Modifier
-                .size(42.dp)
-                .background(appColors.surface.copy(alpha = 0.5f), CircleShape)
-                .border(1.dp, appColors.border.copy(alpha = 0.25f), CircleShape)
-        ) {
-            SunMoonIcon(isDark = isDarkTheme, color = appColors.primaryBlue)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Elegant Key Config Button
+            IconButton(
+                onClick = onConfigKeyClick,
+                modifier = Modifier
+                    .size(42.dp)
+                    .background(appColors.surface.copy(alpha = 0.5f), CircleShape)
+                    .border(1.dp, appColors.border.copy(alpha = 0.25f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Configure Key",
+                    tint = appColors.primaryBlue,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Beautiful Theme Switch Button
+            IconButton(
+                onClick = onToggleTheme,
+                modifier = Modifier
+                    .size(42.dp)
+                    .background(appColors.surface.copy(alpha = 0.5f), CircleShape)
+                    .border(1.dp, appColors.border.copy(alpha = 0.25f), CircleShape)
+            ) {
+                SunMoonIcon(isDark = isDarkTheme, color = appColors.primaryBlue)
+            }
         }
     }
 }

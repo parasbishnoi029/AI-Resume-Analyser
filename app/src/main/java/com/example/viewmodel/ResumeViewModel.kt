@@ -39,6 +39,19 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
     val resumeInput = MutableStateFlow("")
     val jobDescInput = MutableStateFlow("")
 
+    val customApiKey = MutableStateFlow("")
+
+    init {
+        val sharedPrefs = application.getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE)
+        customApiKey.value = sharedPrefs.getString("gemini_api_key", "") ?: ""
+    }
+
+    fun saveApiKey(key: String) {
+        val sharedPrefs = getApplication<Application>().getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE)
+        sharedPrefs.edit().putString("gemini_api_key", key).apply()
+        customApiKey.value = key
+    }
+
     fun setAndroidPreset() {
         resumeInput.value = """
             John Doe - Mobile Dev
@@ -121,10 +134,13 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
 
             try {
                 // Call Gemini REST API
-                val apiKey = BuildConfig.GEMINI_API_KEY
+                var apiKey = customApiKey.value.trim()
+                if (apiKey.isEmpty()) {
+                    apiKey = BuildConfig.GEMINI_API_KEY
+                }
                 if (apiKey == "MY_GEMINI_API_KEY" || apiKey.isEmpty()) {
                     uiState.value = AnalysisUiState.Error(
-                        "Gemini API key is not configured. Please add GEMINI_API_KEY to your AI Studio secrets panel!"
+                        "Gemini API key is not configured. Please configure your custom Gemini API key using the Key option in the app header or via your AI Studio secrets panel!"
                     )
                     return@launch
                 }
