@@ -552,16 +552,26 @@ fun InputForm(
                     val name = withContext(Dispatchers.IO) {
                         getFileName(context, it) ?: "resume.txt"
                     }
-                    selectedFileName = name
                     val content = withContext(Dispatchers.IO) {
                         contentResolver.openInputStream(it)?.bufferedReader()?.use { reader ->
                             reader.readText()
                         }
                     }
                     if (!content.isNullOrBlank()) {
-                        onResumeChange(content)
-                        isFileLoaded = true
-                        Toast.makeText(context, "Loaded Profile: $name", Toast.LENGTH_LONG).show()
+                        if (isBinaryContent(content)) {
+                            selectedFileName = null
+                            isFileLoaded = false
+                            Toast.makeText(
+                                context,
+                                "We detected that '$name' contains binary data (e.g., PDF or Word file). This app parses plain-text (.txt) files. Please paste your resume text directly or select a plain text file.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            selectedFileName = name
+                            onResumeChange(content)
+                            isFileLoaded = true
+                            Toast.makeText(context, "Loaded Profile: $name", Toast.LENGTH_LONG).show()
+                        }
                     } else {
                         Toast.makeText(context, "Loaded file has unreadable/empty text format.", Toast.LENGTH_LONG).show()
                     }
@@ -725,7 +735,7 @@ fun InputForm(
                 )
                 .clickable {
                     try {
-                        fileLauncher.launch("*/*")
+                        fileLauncher.launch("text/plain")
                     } catch (e: android.content.ActivityNotFoundException) {
                         Toast.makeText(context, "File selector app is not installed/enabled. Try pasting the resume content or loading a design preset config.", Toast.LENGTH_LONG).show()
                     } catch (e: Exception) {
@@ -1772,4 +1782,24 @@ private fun getFileName(context: android.content.Context, uri: android.net.Uri):
         }
     }
     return result
+}
+
+private fun isBinaryContent(content: String): Boolean {
+    // Highly efficient binary content scanner to prevent rendering/Compose crashes
+    if (content.startsWith("%PDF")) return true
+    if (content.startsWith("PK\u0003\u0004")) return true // OpenXML (Word/Excel) format or zip
+    if (content.startsWith("MZ")) return true // exe/dll files
+    
+    var controlCount = 0
+    val sampleSize = minOf(content.length, 1000)
+    if (sampleSize == 0) return false
+    
+    for (i in 0 until sampleSize) {
+        val ch = content[i]
+        if (ch == '\u0000') return true
+        if (ch.code < 32 && ch != '\n' && ch != '\r' && ch != '\t') {
+            controlCount++
+        }
+    }
+    return (controlCount.toFloat() / sampleSize.toFloat()) > 0.10f
 }
