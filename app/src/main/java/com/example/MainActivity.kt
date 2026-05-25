@@ -81,49 +81,49 @@ class MainActivity : ComponentActivity() {
             // Dynamic color declarations to fulfill both Beautiful Light & Dark premium Minimalist vibes
             val appColors = if (isDarkTheme) {
                 AppThemeColors(
-                    bg = Color(0xFF0F172A), // Beautiful Tailwind Obsidian slate-900 background
-                    surface = Color(0xFF1E293B), // Charcoal panel container
-                    white = Color(0xFF1E293B), // Soft card face (dark)
-                    border = Color(0xFF334155), // Sleek subtle outline 
-                    textDark = Color(0xFFF1F5F9), // Pearl premium text elements
-                    textMuted = Color(0xFF94A3B8), // Muted cobalt supporting text
-                    primaryBlue = Color(0xFF38BDF8), // Radiant sky theme primary
-                    accentPurple = Color(0xFF818CF8), // Deep celestial violet gauges
-                    scoreBg = Color(0xFF1E1E38), // High contrast indigo card backdrop
-                    scoreTxt = Color(0xFFE0E7FF), // White primary highlight text
-                    cardBg = Color(0xFF1E293B),
-                    lightRedBg = Color(0xFF451E24), // Rich crimson accent elements
-                    darkRedTxt = Color(0xFFFCA5A5),
-                    lightGreenBg = Color(0xFF143022), // Soft emerald background
-                    darkGreenTxt = Color(0xFF86EFAC),
-                    lightBlueBg = Color(0xFF1E3557), // Deep royal slate background
+                    bg = Color(0xFF090D1A), // Astro Deep Space Obsidian Dark Background
+                    surface = Color(0xFF131B2E), // Rich Dark Indigo panel container
+                    white = Color(0xFF1B243B), // Elevated Glassmorphic Card face
+                    border = Color(0xFF283556), // Sophisticated neon-border guidelines
+                    textDark = Color(0xFFFAF9FB), // High-fidelity Crystal White display titles
+                    textMuted = Color(0xFF94A3B8), // Sleek silver slate supporting text description
+                    primaryBlue = Color(0xFF38BDF8), // Radiant Sky Cyan theme primary
+                    accentPurple = Color(0xFF818CF8), // Electric Purple accents
+                    scoreBg = Color(0xFF151D34), // Rich deep-sapphire container bg for key metrics
+                    scoreTxt = Color(0xFFE0E7FF), // Celestial indigo-white highlights
+                    cardBg = Color(0xFF161F35),
+                    lightRedBg = Color(0xFF4C1D24), // Vibrant crimson accents
+                    darkRedTxt = Color(0xFFFDA4AF),
+                    lightGreenBg = Color(0xFF064E3B), // Premium dark forest emerald
+                    darkGreenTxt = Color(0xFF34D399),
+                    lightBlueBg = Color(0xFF1E3A8A), // Regal sapphire background
                     darkBlueTxt = Color(0xFF93C5FD),
-                    emeraldAccent = Color(0xFF34D399),
+                    emeraldAccent = Color(0xFF10B981),
                     amberAccent = Color(0xFFFBBF24),
-                    roseAccent = Color(0xFFFB7185)
+                    roseAccent = Color(0xFFF43F5E)
                 )
             } else {
                 AppThemeColors(
-                    bg = Color(0xFFFDFBFF), // Soft leftmost minimal body canvas bg
-                    surface = Color(0xFFF3F0F5), // Lavender soft neutral containers
-                    white = Color(0xFFFFFFFF), // Core card bodies
-                    border = Color(0xFFCAC4D0), // Standard M3 boundary guidelines
-                    textDark = Color(0xFF1B1B1F), // Charcoal rich display titles
-                    textMuted = Color(0xFF49454F), // Light supporting text description
-                    primaryBlue = Color(0xFF4359A9), // High-fidelity Material slate-blue
-                    accentPurple = Color(0xFF6750A4), // Royal purple metrics
-                    scoreBg = Color(0xFFE8DEF8), // Primary metrics container bg
-                    scoreTxt = Color(0xFF1D192B), // High contrast deep berry for score
+                    bg = Color(0xFFF8FAFC), // Elegant Soft Pearl Snow Light Canvas
+                    surface = Color(0xFFF1F5F9), // Subtle Cloud Lavender Slate structural panels
+                    white = Color(0xFFFFFFFF), // Core card container bodies
+                    border = Color(0xFFE2E8F0), // Ultra clean hair-thin slate borders
+                    textDark = Color(0xFF0F172A), // Luxury obsidian primary ink
+                    textMuted = Color(0xFF475569), // Calm slate supporting descriptions
+                    primaryBlue = Color(0xFF1D4ED8), // Deep cobalt high-fidelity active accents
+                    accentPurple = Color(0xFF6D28D9), // Luxurious Royal amethyst accents
+                    scoreBg = Color(0xFFEEF2FF), // Soft lavender ice backdrop for scoring details
+                    scoreTxt = Color(0xFF1E1B4B), // Heavy indigo-ink contrast highlight
                     cardBg = Color(0xFFFFFFFF),
-                    lightRedBg = Color(0xFFF2B8B5),
-                    darkRedTxt = Color(0xFF601410),
-                    lightGreenBg = Color(0xFFDCF5CC),
-                    darkGreenTxt = Color(0xFF0B2000),
-                    lightBlueBg = Color(0xFFC2E7FF),
-                    darkBlueTxt = Color(0xFF001D35),
-                    emeraldAccent = Color(0xFF10B981),
-                    amberAccent = Color(0xFFF59E0B),
-                    roseAccent = Color(0xFFF43F5E)
+                    lightRedBg = Color(0xFFFEE2E2),
+                    darkRedTxt = Color(0xFF991B1B),
+                    lightGreenBg = Color(0xFFD1FAE5),
+                    darkGreenTxt = Color(0xFF065F46),
+                    lightBlueBg = Color(0xFFEFF6FF),
+                    darkBlueTxt = Color(0xFF1E40AF),
+                    emeraldAccent = Color(0xFF059669),
+                    amberAccent = Color(0xFFD97706),
+                    roseAccent = Color(0xFFE11D48)
                 )
             }
 
@@ -153,26 +153,26 @@ fun MainScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     appColors: AppThemeColors = AppThemeColors(
-        bg = Color(0xFFFDFBFF),
-        surface = Color(0xFFF3F0F5),
-        white = Color(0xFFFFFFFF),
-        border = Color(0xFFCAC4D0),
-        textDark = Color(0xFF1B1B1F),
-        textMuted = Color(0xFF49454F),
-        primaryBlue = Color(0xFF4359A9),
-        accentPurple = Color(0xFF6750A4),
-        scoreBg = Color(0xFFE8DEF8),
-        scoreTxt = Color(0xFF1D192B),
+        bg = Color(0xFFF8FAFC), // Elegant Soft Pearl Snow Light Canvas
+        surface = Color(0xFFF1F5F9), // Subtle Cloud Lavender Slate structural panels
+        white = Color(0xFFFFFFFF), // Core card container bodies
+        border = Color(0xFFE2E8F0), // Ultra clean hair-thin slate borders
+        textDark = Color(0xFF0F172A), // Luxury obsidian primary ink
+        textMuted = Color(0xFF475569), // Calm slate supporting descriptions
+        primaryBlue = Color(0xFF1D4ED8), // Deep cobalt high-fidelity active accents
+        accentPurple = Color(0xFF6D28D9), // Luxurious Royal amethyst accents
+        scoreBg = Color(0xFFEEF2FF), // Soft lavender ice backdrop for scoring details
+        scoreTxt = Color(0xFF1E1B4B), // Heavy indigo-ink contrast highlight
         cardBg = Color(0xFFFFFFFF),
-        lightRedBg = Color(0xFFF2B8B5),
-        darkRedTxt = Color(0xFF601410),
-        lightGreenBg = Color(0xFFDCF5CC),
-        darkGreenTxt = Color(0xFF0B2000),
-        lightBlueBg = Color(0xFFC2E7FF),
-        darkBlueTxt = Color(0xFF001D35),
-        emeraldAccent = Color(0xFF10B981),
-        amberAccent = Color(0xFFF59E0B),
-        roseAccent = Color(0xFFF43F5E)
+        lightRedBg = Color(0xFFFEE2E2),
+        darkRedTxt = Color(0xFF991B1B),
+        lightGreenBg = Color(0xFFD1FAE5),
+        darkGreenTxt = Color(0xFF065F46),
+        lightBlueBg = Color(0xFFEFF6FF),
+        darkBlueTxt = Color(0xFF1E40AF),
+        emeraldAccent = Color(0xFF059669),
+        amberAccent = Color(0xFFD97706),
+        roseAccent = Color(0xFFE11D48)
     ),
     modifier: Modifier = Modifier
 ) {
@@ -439,106 +439,148 @@ fun InputForm(
     ) {
         // --- Try Presets Quick Launcher ---
         Text(
-            text = "PRESET DEMO CONFIGS",
+            text = "PRESET SYSTEM INTUITION",
             style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.3.sp
             ),
             color = appColors.primaryBlue,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 6.dp)
         )
         Text(
-            text = "Tap a preset to immediately test parsing capabilities without pasting raw resume documents.",
+            text = "Initiate parsing benchmarks. Tap a simulated preset profile below to immediately explore ATS reports without uploading files.",
             style = MaterialTheme.typography.bodySmall,
             color = appColors.textMuted,
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(bottom = 14.dp)
         )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(bottom = 26.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Button(
+            Card(
                 onClick = onLoadAndroidPreset,
-                colors = ButtonDefaults.buttonColors(containerColor = appColors.surface),
-                border = BorderStroke(1.dp, appColors.border.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = appColors.white),
+                border = BorderStroke(1.dp, appColors.border.copy(alpha = 0.4f)),
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .weight(1f)
+                    .height(60.dp)
                     .testTag("preset_android_btn")
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = appColors.primaryBlue,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Android Dev",
-                    color = appColors.textDark,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(appColors.lightBlueBg, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Build,
+                            contentDescription = null,
+                            tint = appColors.primaryBlue,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Android Dev",
+                        color = appColors.textDark,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
-            Button(
+            Card(
                 onClick = onLoadWebPreset,
-                colors = ButtonDefaults.buttonColors(containerColor = appColors.surface),
-                border = BorderStroke(1.dp, appColors.border.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = appColors.white),
+                border = BorderStroke(1.dp, appColors.border.copy(alpha = 0.4f)),
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .weight(1f)
+                    .height(60.dp)
                     .testTag("preset_web_btn")
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = appColors.primaryBlue,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Fullstack Web",
-                    color = appColors.textDark,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(appColors.lightGreenBg, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = null,
+                            tint = appColors.emeraldAccent,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Fullstack Web",
+                        color = appColors.textDark,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
 
         // --- EXPORTED DOCUMENT FILE PICKER ---
         Text(
-            text = "UPLOAD CANDIDATE RESUME",
+            text = "SECURE DOCUMENT PARSER",
             style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.3.sp
             ),
             color = appColors.primaryBlue,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 6.dp)
         )
         Text(
-            text = "Select any plain text or structured source resume document file (.txt, .md, .csv) to auto-extract text.",
+            text = "Select any plain text resume document (.txt, .md, .docx structural exports) to automatically ingest information securely.",
             style = MaterialTheme.typography.bodySmall,
             color = appColors.textMuted,
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(bottom = 14.dp)
         )
 
-        // Drag/Click selection area
+        // Drag/Click selection area with glowing visual transition
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp)
+                .padding(bottom = 26.dp)
                 .background(
-                    color = if (isFileLoaded) appColors.lightGreenBg.copy(alpha = 0.25f) else appColors.surface.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(16.dp)
+                    brush = if (isFileLoaded) {
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                appColors.lightGreenBg.copy(alpha = 0.35f),
+                                appColors.bg.copy(alpha = 0.1f)
+                            )
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                appColors.white.copy(alpha = 0.9f),
+                                appColors.surface.copy(alpha = 0.5f)
+                            )
+                        )
+                    },
+                    shape = RoundedCornerShape(20.dp)
                 )
                 .border(
                     width = 1.5.dp,
-                    color = if (isFileLoaded) appColors.darkGreenTxt.copy(alpha = 0.5f) else appColors.border.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(16.dp)
+                    color = if (isFileLoaded) appColors.darkGreenTxt.copy(alpha = 0.8f) else appColors.border.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(20.dp)
                 )
                 .clickable {
                     try {
@@ -549,7 +591,7 @@ fun InputForm(
                         Toast.makeText(context, "Error launching file picker: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                     }
                 }
-                .padding(vertical = 24.dp, horizontal = 16.dp),
+                .padding(vertical = 28.dp, horizontal = 20.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -557,7 +599,7 @@ fun InputForm(
                 verticalArrangement = Arrangement.Center
             ) {
                 // Vector drawn document status icon
-                Canvas(modifier = Modifier.size(46.dp)) {
+                Canvas(modifier = Modifier.size(50.dp)) {
                     val w = size.width
                     val h = size.height
                     val docColor = if (isFileLoaded) appColors.darkGreenTxt else appColors.primaryBlue
@@ -583,7 +625,7 @@ fun InputForm(
                     drawLine(color = docColor, start = androidx.compose.ui.geometry.Offset(w * 0.62f, h * 0.57f - arrowYOffset), end = androidx.compose.ui.geometry.Offset(w * 0.5f, h * 0.45f - arrowYOffset), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
                 }
                 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 if (selectedFileName != null) {
                     Text(
@@ -592,23 +634,23 @@ fun InputForm(
                         color = if (isFileLoaded) appColors.darkGreenTxt else appColors.textDark,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Text content extracted & loaded. Tap to swap file.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isFileLoaded) appColors.darkGreenTxt.copy(alpha = 0.8f) else appColors.textMuted,
+                        text = "Document Ingested Successfully • Tap to swap",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                        color = if (isFileLoaded) appColors.darkGreenTxt else appColors.textMuted,
                         textAlign = TextAlign.Center
                     )
                 } else {
                     Text(
-                        text = "Tap to select local file",
+                        text = "Import Local Resume File",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = appColors.textDark,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Deep system scans and parses candidate records",
+                        text = "Tap to browse records • Gemini AI will extract structural data",
                         style = MaterialTheme.typography.bodySmall,
                         color = appColors.textMuted,
                         textAlign = TextAlign.Center
@@ -695,20 +737,27 @@ fun InputForm(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(appColors.primaryBlue, appColors.accentPurple)
+                    ),
+                    shape = RoundedCornerShape(28.dp)
+                )
                 .testTag("analyze_button"),
             colors = ButtonDefaults.buttonColors(
-                containerColor = appColors.primaryBlue,
+                containerColor = Color.Transparent,
                 contentColor = Color.White
             ),
+            contentPadding = PaddingValues(),
             shape = RoundedCornerShape(28.dp),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Send,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = "Analyze & Optimize Resume",
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -1459,7 +1508,9 @@ fun ScoreGauge(score: Int, appColors: AppThemeColors, modifier: Modifier = Modif
                 radius = size.minDimension / 2 - strokeWidth / 2
             )
             drawArc(
-                color = appColors.accentPurple,
+                brush = Brush.sweepGradient(
+                    colors = listOf(appColors.primaryBlue, appColors.accentPurple, appColors.primaryBlue)
+                ),
                 startAngle = -90f,
                 sweepAngle = (animatedScore.value / 100f) * 360f,
                 useCenter = false,
@@ -1554,16 +1605,22 @@ fun ErrorScreen(
 private fun getFileName(context: android.content.Context, uri: android.net.Uri): String? {
     var result: String? = null
     if (uri.scheme == "content") {
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
         try {
-            if (cursor != null && cursor.moveToFirst()) {
-                val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                if (index != -1) {
-                    result = cursor.getString(index)
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            if (cursor != null) {
+                try {
+                    if (cursor.moveToFirst()) {
+                        val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        if (index != -1) {
+                            result = cursor.getString(index)
+                        }
+                    }
+                } finally {
+                    cursor.close()
                 }
             }
-        } finally {
-            cursor?.close()
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error querying file name from ContentResolver: ${e.localizedMessage}", e)
         }
     }
     if (result == null) {
