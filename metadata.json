@@ -1,0 +1,6 @@
+{
+  "name": "AI Resume Analyser",
+  "description": "AI-powered resume scanning and optimization tool providing actionable improvements and candidates tailoring suggestions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
