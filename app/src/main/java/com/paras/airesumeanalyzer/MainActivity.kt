@@ -81,6 +81,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        try {
+            com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(applicationContext)
+        } catch (e: Throwable) {
+            android.util.Log.e("MainActivity", "Failed to pre-init PDFBox Resource Loader: ${e.localizedMessage}", e)
+        }
+
         val prefs = getSharedPreferences("crash_debug", android.content.Context.MODE_PRIVATE)
         val lastCrash = prefs.getString("last_crash_trace", null)
 
@@ -618,36 +624,55 @@ fun InputForm(
     
     var selectedFileName by remember { mutableStateOf<String?>(null) }
     var isFileLoaded by remember { mutableStateOf(false) }
+    var isReadingFile by remember { mutableStateOf(false) }
 
     // Multi-format Text Picker
     val fileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
+        uri?.let { fileUri ->
+            // Secure temporary file access permission by synchronously reading the bytes on the main thread immediately
+            val fileBytes: ByteArray? = try {
+                contentResolver.openInputStream(fileUri)?.use { inputStream ->
+                    inputStream.readBytes()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to open and read input stream synchronously: ${e.localizedMessage}", e)
+                null
+            }
+
+            if (fileBytes == null || fileBytes.isEmpty()) {
+                Toast.makeText(context, "Failed to load selected file content or file is empty.", Toast.LENGTH_LONG).show()
+                return@rememberLauncherForActivityResult
+            }
+
             coroutineScope.launch {
                 try {
                     val name = withContext(Dispatchers.IO) {
-                        getFileName(context, it) ?: "resume.txt"
+                        getFileName(context, fileUri) ?: "resume.txt"
                     }
-                    val mimeType = contentResolver.getType(it) ?: ""
+                    val mimeType = contentResolver.getType(fileUri) ?: ""
                     val extension = name.substringAfterLast('.', "").lowercase()
                     
-                    val isPdf = extension == "pdf" || mimeType == "application/pdf"
-                    val isDocx = extension == "docx" || mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    val isDoc = extension == "doc" || mimeType == "application/msword"
+                    val detectedType = withContext(Dispatchers.IO) {
+                        detectFileTypeByMagicBytes(context, fileUri)
+                    }
+                    val isPdf = detectedType == "pdf" || extension == "pdf" || mimeType == "application/pdf" || mimeType.contains("pdf", ignoreCase = true)
+                    val isDocx = detectedType == "docx" || extension == "docx" || mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || mimeType.contains("wordprocessingml", ignoreCase = true)
+                    val isDoc = detectedType == "doc" || extension == "doc" || mimeType == "application/msword" || mimeType.contains("msword", ignoreCase = true)
 
                     val content = withContext(Dispatchers.IO) {
                         when {
                             isPdf -> {
                                 try {
                                     com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(context)
-                                    contentResolver.openInputStream(it)?.use { inputStream ->
+                                    java.io.ByteArrayInputStream(fileBytes).use { inputStream ->
                                         val document = com.tom_roush.pdfbox.pdmodel.PDDocument.load(inputStream)
                                         val stripper = com.tom_roush.pdfbox.text.PDFTextStripper()
                                         val text = stripper.getText(document)
                                         document.close()
                                         text ?: ""
-                                    } ?: ""
+                                    }
                                 } catch (e: Exception) {
                                     android.util.Log.e("MainActivity", "PDF text extraction failed: ${e.localizedMessage}", e)
                                     ""
@@ -655,7 +680,7 @@ fun InputForm(
                             }
                             isDocx -> {
                                 try {
-                                    contentResolver.openInputStream(it)?.use { inputStream ->
+                                    java.io.ByteArrayInputStream(fileBytes).use { inputStream ->
                                         java.util.zip.ZipInputStream(inputStream).use { zipInputStream ->
                                             var textContent = ""
                                             var entry = zipInputStream.nextEntry
@@ -698,7 +723,7 @@ fun InputForm(
                                             }
                                             textContent
                                         }
-                                    } ?: ""
+                                    }
                                 } catch (e: Exception) {
                                     android.util.Log.e("MainActivity", "DOCX text extraction failed: ${e.localizedMessage}", e)
                                     ""
@@ -706,63 +731,63 @@ fun InputForm(
                             }
                             isDoc -> {
                                 try {
-                                    contentResolver.openInputStream(it)?.use { inputStream ->
-                                        val bytes = inputStream.readBytes()
-                                        val result = java.lang.StringBuilder()
-                                        val minRunLength = 4
-                                        val run = java.lang.StringBuilder()
-                                        var j = 0
-                                        val size = bytes.size
-                                        while (j < size) {
-                                            val c = bytes[j].toInt() and 0xFF
-                                            if ((c in 32..126) || c == 9 || c == 10 || c == 13) {
-                                                run.append(c.toChar())
-                                            } else {
-                                                if (run.length >= minRunLength) {
-                                                    val s = run.toString().trim()
-                                                    if (s.isNotEmpty() && !s.startsWith("Normal") && !s.startsWith("Microsoft") && !s.contains("Content-") && !s.startsWith("Font")) {
-                                                        result.append(s).append(" ")
-                                                    }
+                                    val bytes = fileBytes
+                                    val result = java.lang.StringBuilder()
+                                    val minRunLength = 4
+                                    val run = java.lang.StringBuilder()
+                                    var j = 0
+                                    val size = bytes.size
+                                    while (j < size) {
+                                        val c = bytes[j].toInt() and 0xFF
+                                        if ((c in 32..126) || c == 9 || c == 10 || c == 13) {
+                                            run.append(c.toChar())
+                                        } else {
+                                            if (run.length >= minRunLength) {
+                                                val s = run.toString().trim()
+                                                if (s.isNotEmpty() && !s.startsWith("Normal") && !s.startsWith("Microsoft") && !s.contains("Content-") && !s.startsWith("Font")) {
+                                                    result.append(s).append(" ")
                                                 }
-                                                run.setLength(0)
                                             }
+                                            run.setLength(0)
+                                        }
+                                        j++
+                                    }
+                                    if (run.length >= minRunLength) {
+                                        result.append(run.toString())
+                                    }
+                                    val runUtf16 = java.lang.StringBuilder()
+                                    j = 0
+                                    while (j < size - 1) {
+                                        val b1 = bytes[j].toInt() and 0xFF
+                                        val b2 = bytes[j + 1].toInt() and 0xFF
+                                        if (b2 == 0 && ((b1 in 32..126) || b1 == 9 || b1 == 10 || b1 == 13)) {
+                                            runUtf16.append(b1.toChar())
+                                            j += 2
+                                        } else {
+                                            if (runUtf16.length >= minRunLength) {
+                                                val s = runUtf16.toString().trim()
+                                                if (s.isNotEmpty() && !s.startsWith("Normal") && !s.startsWith("Microsoft") && !s.startsWith("Font")) {
+                                                    result.append(s).append(" ")
+                                                }
+                                            }
+                                            runUtf16.setLength(0)
                                             j++
                                         }
-                                        if (run.length >= minRunLength) {
-                                            result.append(run.toString())
-                                        }
-                                        val runUtf16 = java.lang.StringBuilder()
-                                        j = 0
-                                        while (j < size - 1) {
-                                            val b1 = bytes[j].toInt() and 0xFF
-                                            val b2 = bytes[j + 1].toInt() and 0xFF
-                                            if (b2 == 0 && ((b1 in 32..126) || b1 == 9 || b1 == 10 || b1 == 13)) {
-                                                runUtf16.append(b1.toChar())
-                                                j += 2
-                                            } else {
-                                                if (runUtf16.length >= minRunLength) {
-                                                    val s = runUtf16.toString().trim()
-                                                    if (s.isNotEmpty() && !s.startsWith("Normal") && !s.startsWith("Microsoft") && !s.startsWith("Font")) {
-                                                        result.append(s).append(" ")
-                                                    }
-                                                }
-                                                runUtf16.setLength(0)
-                                                j++
-                                            }
-                                        }
-                                        if (runUtf16.length >= minRunLength) {
-                                            result.append(runUtf16.toString())
-                                        }
-                                        result.toString().replace(Regex("\\s+"), " ").trim()
-                                    } ?: ""
+                                    }
+                                    if (runUtf16.length >= minRunLength) {
+                                        result.append(runUtf16.toString())
+                                    }
+                                    result.toString().replace(Regex("\\s+"), " ").trim()
                                 } catch (e: Exception) {
                                     android.util.Log.e("MainActivity", "DOC text extraction failed: ${e.localizedMessage}", e)
                                     ""
                                 }
                             }
                             else -> {
-                                contentResolver.openInputStream(it)?.bufferedReader()?.use { reader ->
-                                    reader.readText()
+                                try {
+                                    String(fileBytes, Charsets.UTF_8)
+                                } catch (e: Exception) {
+                                    ""
                                 }
                             }
                         }
@@ -2013,3 +2038,32 @@ private fun isBinaryContent(content: String): Boolean {
     }
     return (controlCount.toFloat() / sampleSize.toFloat()) > 0.10f
 }
+
+private fun detectFileTypeByMagicBytes(context: android.content.Context, uri: android.net.Uri): String {
+    try {
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            val header = ByteArray(8)
+            val bytesRead = inputStream.read(header)
+            if (bytesRead >= 4) {
+                val sb = java.lang.StringBuilder()
+                for (i in 0 until minOf(bytesRead, 8)) {
+                    sb.append(String.format("%02X", header[i].toInt() and 0xFF))
+                }
+                val hex = sb.toString()
+                if (hex.startsWith("25504446")) { // %PDF
+                    return "pdf"
+                }
+                if (hex.startsWith("504B0304")) { // PK.. (ZIP / DOCX)
+                    return "docx"
+                }
+                if (hex.startsWith("D0CF11E0")) { // MS Doc OLE2
+                    return "doc"
+                }
+            }
+        }
+    } catch (e: Throwable) {
+        android.util.Log.e("MainActivity", "Error reading magic bytes: ${e.localizedMessage}", e)
+    }
+    return "unknown"
+}
+
