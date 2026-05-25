@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
+  namespace = "com.paras.airesumeanalyzer"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
@@ -158,5 +158,28 @@ tasks.configureEach {
     if (name.contains("packageRelease", ignoreCase = true) || name.contains("signingConfig", ignoreCase = true)) {
         dependsOn("generateReleaseKeystore")
     }
+}
+
+// Automatically copy signed release APK to the designated .build-outputs folder for download
+val projectDirectory = projectDir
+val rootDirectory = rootDir
+tasks.register("copyReleaseApkToBuildOutputs") {
+    val srcFile = File(projectDirectory, "build/outputs/apk/release/app-release.apk")
+    val destDir = File(rootDirectory, ".build-outputs")
+    inputs.file(srcFile)
+    outputs.file(File(destDir, "app-release.apk"))
+    doLast {
+        if (srcFile.exists()) {
+            destDir.mkdirs()
+            srcFile.copyTo(File(destDir, "app-release.apk"), overwrite = true)
+            println("=== SUCCESS: Copied signed release APK to ${destDir.absolutePath}/app-release.apk ===")
+        } else {
+            error("=== ERROR: Release APK not found at ${srcFile.absolutePath} ===")
+        }
+    }
+}
+
+tasks.matching { it.name == "assembleRelease" }.configureEach {
+    finalizedBy("copyReleaseApkToBuildOutputs")
 }
 
